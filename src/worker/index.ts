@@ -8,7 +8,7 @@ const app = new Hono<{ Bindings: Env }>();
 app.use("*", async (c, next) => {
   try {
     // Run once per worker instance
-    if (!(globalThis as any).__teachers_migrated) {
+    if (!((globalThis as unknown) as { __teachers_migrated?: boolean }).__teachers_migrated) {
       await c.env.DB.prepare(`
         CREATE TABLE IF NOT EXISTS teachers (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,11 +27,11 @@ app.use("*", async (c, next) => {
         await c.env.DB.prepare(
           "CREATE INDEX IF NOT EXISTS idx_teachers_name ON teachers(name)"
         ).run();
-      } catch (e) {
+      } catch {
         // Some SQLite engines may not support IF NOT EXISTS on CREATE INDEX; ignore errors
       }
 
-      (globalThis as any).__teachers_migrated = true;
+      ((globalThis as unknown) as { __teachers_migrated?: boolean }).__teachers_migrated = true;
     }
   } catch (err) {
     console.error("Migration check failed:", err);
@@ -387,11 +387,22 @@ app.post("/api/students/:id/photo", async (c) => {
 // Get all teachers
 app.get("/api/teachers", async (c) => {
   const res = await c.env.DB.prepare("SELECT * FROM teachers ORDER BY name").all();
-  const teachers = res.results.map((t: any) => ({
-    ...t,
-    subjects: t.subjects ? JSON.parse(t.subjects) : [],
-    yearly_goals: t.yearly_goals ? JSON.parse(t.yearly_goals) : [],
-  }));
+  const teachers = res.results.map((t: unknown) => {
+    const row = t as Record<string, unknown>;
+    const subjects = typeof row.subjects === "string" ? JSON.parse(String(row.subjects)) : [];
+    const yearly_goals = typeof row.yearly_goals === "string" ? JSON.parse(String(row.yearly_goals)) : [];
+    return {
+      id: row.id !== undefined ? Number(row.id) : undefined,
+      name: row.name !== undefined ? String(row.name) : undefined,
+      email: row.email !== undefined ? String(row.email) : null,
+      phone: row.phone !== undefined ? String(row.phone) : null,
+      profile_photo_url: row.profile_photo_url !== undefined ? String(row.profile_photo_url) : null,
+      subjects,
+      yearly_goals,
+      created_at: row.created_at !== undefined ? String(row.created_at) : undefined,
+      updated_at: row.updated_at !== undefined ? String(row.updated_at) : undefined,
+    };
+  });
 
   return c.json(teachers);
 });
@@ -423,9 +434,18 @@ app.post(
       JSON.stringify(data.yearly_goals || [])
     ).first();
 
-    const t = result as any;
-    t.subjects = JSON.parse(t.subjects || "[]");
-    t.yearly_goals = JSON.parse(t.yearly_goals || "[]");
+    const tRow = result as Record<string, unknown>;
+    const t = {
+      id: tRow.id !== undefined ? Number(tRow.id) : undefined,
+      name: tRow.name !== undefined ? String(tRow.name) : undefined,
+      email: tRow.email !== undefined ? String(tRow.email) : null,
+      phone: tRow.phone !== undefined ? String(tRow.phone) : null,
+      profile_photo_url: tRow.profile_photo_url !== undefined ? String(tRow.profile_photo_url) : null,
+      subjects: typeof tRow.subjects === "string" ? JSON.parse(String(tRow.subjects)) : [],
+      yearly_goals: typeof tRow.yearly_goals === "string" ? JSON.parse(String(tRow.yearly_goals)) : [],
+      created_at: tRow.created_at !== undefined ? String(tRow.created_at) : undefined,
+      updated_at: tRow.updated_at !== undefined ? String(tRow.updated_at) : undefined,
+    };
 
     return c.json(t);
   }
@@ -449,7 +469,7 @@ app.put(
     const data = c.req.valid("json");
 
     const updates: string[] = [];
-    const values: any[] = [];
+    const values: unknown[] = [];
 
     if (data.name !== undefined) {
       updates.push("name = ?");
@@ -483,9 +503,18 @@ app.put(
     const result = await c.env.DB.prepare("SELECT * FROM teachers WHERE id = ?").bind(id).first();
     if (!result) return c.json({ error: "Teacher not found" }, 404);
 
-    const t = result as any;
-    t.subjects = t.subjects ? JSON.parse(t.subjects) : [];
-    t.yearly_goals = t.yearly_goals ? JSON.parse(t.yearly_goals) : [];
+    const tRow = result as Record<string, unknown>;
+    const t = {
+      id: tRow.id !== undefined ? Number(tRow.id) : undefined,
+      name: tRow.name !== undefined ? String(tRow.name) : undefined,
+      email: tRow.email !== undefined ? String(tRow.email) : null,
+      phone: tRow.phone !== undefined ? String(tRow.phone) : null,
+      profile_photo_url: tRow.profile_photo_url !== undefined ? String(tRow.profile_photo_url) : null,
+      subjects: typeof tRow.subjects === "string" ? JSON.parse(String(tRow.subjects)) : [],
+      yearly_goals: typeof tRow.yearly_goals === "string" ? JSON.parse(String(tRow.yearly_goals)) : [],
+      created_at: tRow.created_at !== undefined ? String(tRow.created_at) : undefined,
+      updated_at: tRow.updated_at !== undefined ? String(tRow.updated_at) : undefined,
+    };
 
     return c.json(t);
   }
@@ -555,11 +584,11 @@ app.post("/internal/migrate", async (c) => {
 
     try {
       await c.env.DB.prepare("CREATE INDEX idx_teachers_name ON teachers(name)").run();
-    } catch (e) {
+    } catch {
       // ignore index creation errors
     }
 
-    (globalThis as any).__teachers_migrated = true;
+    ((globalThis as unknown) as { __teachers_migrated?: boolean }).__teachers_migrated = true;
     return c.json({ success: true });
   } catch (err) {
     console.error("Migration force failed:", err);
@@ -580,7 +609,7 @@ app.post("/internal/migrate-safe", async (c) => {
     const tbl = await c.env.DB.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='teachers'").all();
     const tableExists = (tbl.results && tbl.results.length > 0) || false;
 
-    let columns: any[] = [];
+    let columns: unknown[] = [];
     let indexExists = false;
     if (tableExists) {
       const colsRes = await c.env.DB.prepare("PRAGMA table_info(teachers)").all();
@@ -603,7 +632,7 @@ app.post("/internal/migrate-safe", async (c) => {
       { name: "updated_at", type: "DATETIME DEFAULT CURRENT_TIMESTAMP" },
     ];
 
-    const existingNames = columns.map((c: any) => c.name);
+    const existingNames = columns.map((c) => String((c as Record<string, unknown>).name));
     const missingColumns = desiredColumns.filter((col) => !existingNames.includes(col.name)).map((c) => c.name);
 
     const suggestedSql: string[] = [];

@@ -1,15 +1,26 @@
-import z from "zod";
+export type Student = {
+	id?: number;
+	name: string;
+	status?: string;
+	number?: number | string | null;
+	phone?: string | null;
+	profile_photo_url?: string | null;
+	life_project?: string | null;
+	youth_club_semester_1?: string | null;
+	youth_club_semester_2?: string | null;
+	elective_semester_1?: string | null;
+	elective_semester_2?: string | null;
+	tutor_teacher?: string | null;
+	guardian_1?: string | null;
+	guardian_2?: string | null;
+};
 
-/**
- * Types shared between the client and server go here.
- *
- * For example, we can add zod schemas for API input validation, and derive types from them:
- *
- * export const TodoSchema = z.object({
- *   id: z.number(),
- *   name: z.string(),
- *   completed: z.number().int(), // 0 or 1
- * })
- *
- * export type TodoType = z.infer<typeof TodoSchema>;
- */
+export type Teacher = {
+	id?: number;
+	name: string;
+	email?: string | null;
+	phone?: string | null;
+	profile_photo_url?: string | null;
+	subjects?: string[];
+	yearly_goals?: string[];
+};

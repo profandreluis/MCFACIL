@@ -1,10 +1,11 @@
 import { useState, useRef } from "react";
 import { X, User, Phone, Upload, Camera, Tag, Target } from "lucide-react";
+import type { Teacher } from "../../shared/types";
 
 interface TeacherModalProps {
-  teacher: any;
+  teacher: Partial<Teacher>;
   onClose: () => void;
-  onSave: (teacherData: any) => void;
+  onSave: (teacherData: Partial<Teacher>) => void;
 }
 
 export default function TeacherModal({ teacher, onClose, onSave }: TeacherModalProps) {
@@ -65,7 +66,7 @@ export default function TeacherModal({ teacher, onClose, onSave }: TeacherModalP
   };
 
   const handleRemoveSubject = (index: number) => {
-    const next = formData.subjects.filter((_: any, i: number) => i !== index);
+    const next = formData.subjects.filter((_: string, i: number) => i !== index);
     setFormData({ ...formData, subjects: next });
   };
 
@@ -80,7 +81,7 @@ export default function TeacherModal({ teacher, onClose, onSave }: TeacherModalP
   };
 
   const handleRemoveGoal = (index: number) => {
-    const goals = formData.yearly_goals.filter((_: any, i: number) => i !== index);
+    const goals = formData.yearly_goals.filter((_: string, i: number) => i !== index);
     setFormData({ ...formData, yearly_goals: goals });
   };
 

@@ -1,31 +1,32 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { X, User, Phone, BookOpen, Users, GraduationCap, Upload, Camera } from "lucide-react";
+import type { Student } from "../../shared/types";
 
 interface StudentModalProps {
-  student: any;
+  student: Partial<Student>;
   onClose: () => void;
-  onSave: (studentData: any) => void;
+  onSave: (studentData: Partial<Student>) => void;
 }
 
 export default function StudentModal({ student, onClose, onSave }: StudentModalProps) {
-  const [formData, setFormData] = useState({
-    name: student.name || "",
-    number: student.number || "",
-    status: student.status || "Ativo",
-    phone: student.phone || "",
-    profile_photo_url: student.profile_photo_url || "",
-    life_project: student.life_project || "",
-    youth_club_semester_1: student.youth_club_semester_1 || "",
-    youth_club_semester_2: student.youth_club_semester_2 || "",
-    elective_semester_1: student.elective_semester_1 || "",
-    elective_semester_2: student.elective_semester_2 || "",
-    tutor_teacher: student.tutor_teacher || "",
-    guardian_1: student.guardian_1 || "",
-    guardian_2: student.guardian_2 || "",
+  const [formData, setFormData] = useState<Partial<Student>>({
+    name: student?.name || "",
+    number: student?.number ?? "",
+    status: student?.status || "Ativo",
+    phone: student?.phone || "",
+    profile_photo_url: student?.profile_photo_url || "",
+    life_project: student?.life_project || "",
+    youth_club_semester_1: student?.youth_club_semester_1 || "",
+    youth_club_semester_2: student?.youth_club_semester_2 || "",
+    elective_semester_1: student?.elective_semester_1 || "",
+    elective_semester_2: student?.elective_semester_2 || "",
+    tutor_teacher: student?.tutor_teacher || "",
+    guardian_1: student?.guardian_1 || "",
+    guardian_2: student?.guardian_2 || "",
   });
   
   const [uploading, setUploading] = useState(false);
-  const [photoPreview, setPhotoPreview] = useState<string>(student.profile_photo_url || "");
+  const [photoPreview, setPhotoPreview] = useState<string>(student?.profile_photo_url || "");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,15 +41,14 @@ export default function StudentModal({ student, onClose, onSave }: StudentModalP
     reader.readAsDataURL(file);
     
     // Upload to server if student already exists
-    if (student.id) {
+    if (student?.id) {
       setUploading(true);
       try {
         const uploadForm = new FormData();
         uploadForm.append("photo", file);
-        
         const response = await fetch(`/api/students/${student.id}/photo`, {
           method: "POST",
-          body: formData,
+          body: uploadForm,
         });
         
         if (!response.ok) {

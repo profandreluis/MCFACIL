@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router";
-import { ArrowLeft, Plus, Edit2, Trash2, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Save, X } from "lucide-react";
 import StudentModal from "../components/StudentModal";
 
 interface Student {
@@ -61,9 +61,9 @@ export default function ClassDetail() {
 
   useEffect(() => {
     fetchClassData();
-  }, [id]);
+  }, [fetchClassData]);
 
-  const fetchClassData = async () => {
+  const fetchClassData = useCallback(async () => {
     try {
       const response = await fetch(`/api/classes/${id}`);
       const classData = await response.json();
@@ -73,7 +73,7 @@ export default function ClassDetail() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   const getGrade = (studentId: number, activityId: number): number | null => {
     if (!data) return null;
@@ -141,7 +141,7 @@ export default function ClassDetail() {
     setIsAddingStudent(false);
   };
 
-  const handleSaveStudent = async (studentData: any) => {
+  const handleSaveStudent = async (studentData: Partial<Student>) => {
     try {
       if (isAddingStudent) {
         await fetch("/api/students", {

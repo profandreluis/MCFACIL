@@ -44,7 +44,7 @@ export default function TeachersPage() {
     setIsAdding(false);
   };
 
-  const handleSave = async (teacherData: any) => {
+  const handleSave = async (teacherData: Partial<Teacher>) => {
     try {
       if (isAdding) {
         await fetch("/api/teachers", {
