@@ -1,0 +1,25 @@
+[type = "javascript"]
+
+# Example Wrangler config (fill placeholders before use)
+name = "gestao-escolar"
+account_id = "your-account-id"
+workers_dev = true
+
+# Bindings (example): R2, DB, and a migration secret.
+[vars]
+# WARNING: defining secrets in plain text is NOT recommended for production.
+# Use `wrangler secret put MIGRATION_SECRET` to store the secret securely.
+MIGRATION_SECRET = "replace-with-your-secret"
+
+# Example of R2 and KV bindings (replace with your actual bindings):
+#[[r2_buckets]]
+#binding = "R2_BUCKET"
+#bucket_name = "your-r2-bucket"
+
+#[[services]]
+## add services if needed
+
+# To set the secret securely instead of storing in this file run:
+#
+#   npx wrangler secret put MIGRATION_SECRET
+#
