@@ -1,49 +1,131 @@
-## Gestão Escolar
+# Gestão Escolar (MCFACIL)
 
-This app was created using https://getmocha.com.
-Need help or want to join the community? Join our [Discord](https://discord.gg/shDEGBSe2d).
+Sistema de gestão escolar completo com suporte a turmas, alunos, professores, atividades e notas.
 
-To run the devserver:
-```
-npm install
+## Arquitetura
+
+- **Frontend:** React 19 + Vite (nova app em `src/new-app`, app legada em `src/react-app`)
+- **Backend/Worker:** Hono.js + Cloudflare Workers
+- **Database:** D1 (SQLite-like via Cloudflare)
+- **Storage:** R2 Bucket (Cloudflare)
+- **TypeScript:** Compilação strict com ESLint
+
+## Pré-requisitos
+
+- Node.js 20+
+- npm 10+
+- Git
+
+## Instalação Rápida
+
+```bash
+npm install --legacy-peer-deps
 npm run dev
 ```
 
-## Migrações internas (endpoints)
+Acesse http://localhost:5174
 
-O worker expõe dois endpoints internos para gerenciar a migração da tabela `teachers`:
+## Scripts Disponíveis
 
-- `POST /internal/migrate` (modo destrutivo):
-	- Requer header `x-migration-secret` com o valor da binding `MIGRATION_SECRET`.
-	- Ação: executa `DROP TABLE IF EXISTS teachers` e recria a tabela e índice. Use com cuidado — remove dados existentes.
-	- Exemplo:
-		```bash
-		curl -X POST http://localhost:8787/internal/migrate -H "x-migration-secret: $MIGRATION_SECRET"
-		```
-
-- `POST /internal/migrate-safe` (modo seguro, não destrutivo):
-	- Requer header `x-migration-secret` com o valor da binding `MIGRATION_SECRET`.
-	- Ação: inspeciona o banco e retorna um relatório JSON com `tableExists`, `columns`, `missingColumns` e `suggestedSql` com as alterações necessárias (não altera dados).
-	- Use para revisar o que precisa ser aplicado manualmente ou com cuidado.
-	- Exemplo:
-		```bash
-		curl -X POST http://localhost:8787/internal/migrate-safe -H "x-migration-secret: $MIGRATION_SECRET"
-		```
-
-Configuração recomendada:
-
-- Defina a variável/binding `MIGRATION_SECRET` no seu `wrangler.toml` (ou nas bindings do ambiente) com um segredo forte.
-- Execute `POST /internal/migrate-safe` primeiro para checar diferenças.
-- Se tudo estiver correto e você estiver ciente dos riscos, use `POST /internal/migrate` para aplicar (modo destrutivo).
-
-Observação: o worker também possui um middleware que cria a tabela `teachers` automaticamente na primeira requisição, caso ela não exista. O endpoint seguro é útil para validar colunas/adaptações sem tocar nos dados.
-
-## Tornar o script executável (opcional)
-
-Se você quer marcar o script `scripts/set-secret.sh` como executável no repositório (modo Unix-like), execute localmente no seu ambiente com `git` instalado:
+### Desenvolvimento
 
 ```bash
-git update-index --chmod=+x scripts/set-secret.sh
+npm run dev              # Dev server (app legada)
+npm run dev:new-app      # Dev server (nova app)
+npm run check            # Verificar tipos
+npm run lint             # ESLint
+npm run test             # Rodar testes (Vitest)
+npm run test:ui          # Rodar testes com UI
 ```
 
-No Windows você pode manter o script e executá-lo via WSL/Git Bash, ou usar o PowerShell equivalente `scripts/set-secret.ps1`.
+### Build & Deploy
+
+```bash
+npm run build            # Build app legada
+npm run build:new-app    # Build nova app
+npm run build:worker     # Build worker
+npx wrangler deploy      # Deploy (requer wrangler.json)
+```
+
+## Endpoints da API
+
+| Recurso | Método | Endpoint | Descrição |
+|---------|--------|----------|-----------|
+| Turmas | GET | `/api/classes` | Listar turmas |
+| Turmas | POST | `/api/classes` | Criar turma |
+| Turmas | PUT | `/api/classes/:id` | Atualizar turma |
+| Turmas | DELETE | `/api/classes/:id` | Deletar turma |
+| Alunos | GET | `/api/students` | Listar alunos |
+| Alunos | POST | `/api/students` | Criar aluno |
+| Alunos | POST | `/api/students/:id/photo` | Upload foto |
+| Professores | GET | `/api/teachers` | Listar professores |
+| Professores | POST | `/api/teachers` | Criar professor |
+| Atividades | GET | `/api/activities` | Listar atividades |
+| Atividades | POST | `/api/activities` | Criar atividade |
+| Notas | GET | `/api/grades` | Listar notas |
+| Notas | POST | `/api/grades` | Salvar nota |
+
+## Endpoints Internos
+
+Requerem header `x-migration-secret`:
+
+- `POST /internal/migrate` — Force re-run migrations (destructive)
+- `POST /internal/migrate-safe` — Check migrations without applying
+
+## Estrutura de Pastas
+
+```
+src/
+├── new-app/              # Nova app (Vite/React)
+├── react-app/            # App legada
+├── shared/types.ts       # Tipos compartilhados
+└── worker/index.ts       # Hono worker (API)
+```
+
+## Desenvolvimento Local
+
+1. Instalar: `npm install --legacy-peer-deps`
+2. Verificar tipos: `npm run check`
+3. Lint: `npm run lint`
+4. Testes: `npm run test`
+5. Dev: `npm run dev`
+
+## Testes
+
+O projeto usa **Vitest** para testes:
+
+```bash
+npm run test             # Rodar testes uma vez
+npm run test:ui          # Abrir UI dos testes
+```
+
+Testes estão em `src/__tests__/`.
+
+## Contribuindo
+
+```bash
+git checkout -b feature/sua-feature
+git commit -m "feat: descrição"
+npm run check && npm run lint
+git push -u origin feature/sua-feature
+```
+
+Abra um Pull Request para review.
+
+## Endpoints Internos de Migração
+
+O worker expõe dois endpoints para gerenciar a migração da tabela `teachers`:
+
+- `POST /internal/migrate` (modo destrutivo):
+  - Requer header `x-migration-secret`
+  - Executa `DROP TABLE IF EXISTS teachers` e recria a tabela
+  - Use com cuidado — remove dados existentes
+
+- `POST /internal/migrate-safe` (modo seguro):
+  - Requer header `x-migration-secret`
+  - Inspeciona o banco e retorna relatório sem aplicar mudanças
+  - Útil para validar mudanças antes de aplicar
+
+## Licença
+
+Proprietary - MCFACIL 2025-2026
